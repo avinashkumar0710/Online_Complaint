@@ -86,10 +86,13 @@ if (!isset($_SESSION["emp_num"])) {
 
     <ul class='nav justify-content-center' style='background-color: #34495E;'>
 
+    <?php if ($access == '17' || $access == '4' || $access == '7' || $access == '0'): ?>
         <li class='nav-item'>
             <a class='nav-link' href='index.php'>OCMS Home</a>
         </li>
-
+        <?php endif; ?>  
+        
+        <?php if ($access == '17' || $access == '4' || $access == '7' || $access == '0' || $access == '25'): ?>
         <li class='nav-item'>
             <a type='button' class='nav-link dropdown-toggle' data-bs-toggle='dropdown'>Complaints Register</a>
             <ul class='dropdown-menu' style='background-color: #8be385;'>
@@ -98,6 +101,7 @@ if (!isset($_SESSION["emp_num"])) {
             </ul>
         </li>
 
+        <?php endif; ?>  
         <!-- <li class='nav-item'>
             <a class='nav-link' href='View_Personal_Info.php'>View & Modify Personal Info</a>
         </li> -->
@@ -148,6 +152,12 @@ if (!isset($_SESSION["emp_num"])) {
                 <li><a class='dropdown-item' href='complaint_reg/manage_user_master.php'>Manage User Master</a></li>
                 <li><a class='dropdown-item' href='complaint_reg/user_request.php'>New user Requests</a></li>
             </ul>
+        </li>
+        <?php endif; ?>
+
+        <?php if ($access == '25'):?>
+        <li class='nav-item'>
+            <a class='nav-link' href='complaint_reg/overall_summary_complaints.php'>Summary of Complaints</a>
         </li>
         <?php endif; ?>
 

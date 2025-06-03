@@ -96,10 +96,13 @@ $plant = "select Plant from [Complaint].[dbo].[EA_webuser_tstpp] where emp_num='
 
     <ul class='nav justify-content-center' style='background-color: #34495E;'>
 
+    <?php if ($access == '17' || $access == '4' || $access == '7' || $access == '0'): ?>
     <li class='nav-item'>
         <a class='nav-link' href='../index.php'>OCMS Home</a>
     </li>
+    <?php endif; ?>  
 
+  <?php if ($access == '17' || $access == '4' || $access == '7' || $access == '0' || $access == '25'): ?>
     <li class='nav-item'>
         <a type='button' class='nav-link dropdown-toggle' data-bs-toggle='dropdown'>Complaints Register</a>
         <ul class='dropdown-menu' style='background-color: #8be385;'>
@@ -107,7 +110,7 @@ $plant = "select Plant from [Complaint].[dbo].[EA_webuser_tstpp] where emp_num='
             <li><a class='dropdown-item' href='Check_status.php'>Check Status Of Your Complaint</a></li>
         </ul>
     </li>
-
+    <?php endif; ?>  
     <!-- <li class='nav-item'>
         <a class='nav-link' href='../View_Personal_Info.php'>View & Modify Personal Info</a>
     </li> -->
@@ -158,6 +161,12 @@ $plant = "select Plant from [Complaint].[dbo].[EA_webuser_tstpp] where emp_num='
             </ul>
         </li>
     <?php endif; ?>
+
+    <?php if ($access == '25'):?>
+        <li class='nav-item'>
+            <a class='nav-link' href='overall_summary_complaints.php'>Summary of Complaints</a>
+        </li>
+        <?php endif; ?>
 
     <li class='nav-item'>
         <a class='nav-link' href='Change_My_Password.php'>Change my Password</a>

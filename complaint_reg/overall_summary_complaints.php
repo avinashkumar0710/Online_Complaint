@@ -112,7 +112,14 @@ if ($result1) {
     }
     </style>
 </head>
-
+<script>
+function togglePlantRows(plant) {
+    var rows = document.querySelectorAll('[data-plant="' + plant + '"]'); // Select rows by data attribute
+    rows.forEach(row => {
+        row.style.display = (row.style.display === 'none') ? 'table-row' : 'none';
+    });
+}
+</script>
 <body>
     <center>
         <div class="container">
@@ -155,81 +162,58 @@ if ($noRecords) { ?>
                     </thead>
                     <tbody>
                     <?php
-$datefind = "SELECT DISTINCT compTypeId, deptID, compTypeDesc, deptDesc, compTypeMas.Plant, loc_desc 
-             FROM [complaint].[dbo].[compTypeMas] 
-             JOIN [complaint].[dbo].[emp_mas_sap] ON compTypeMas.Plant = emp_mas_sap.location
-             WHERE  compTypeMas.plant = '$plant'";
+        $datefind = "SELECT DISTINCT compTypeId, deptID, compTypeDesc, deptDesc, compTypeMas.Plant, loc_desc 
+                     FROM [complaint].[dbo].[compTypeMas] 
+                     JOIN [complaint].[dbo].[emp_mas_sap] ON compTypeMas.Plant = emp_mas_sap.location 
+                     GROUP BY compTypeMas.Plant, compTypeId, deptID, compTypeDesc, deptDesc, loc_desc";
+        $result2 = sqlsrv_query($conn, $datefind);
 
-$result2 = sqlsrv_query($conn, $datefind);
+        if ($result2) {
+            $plants = []; // Store unique plant names
 
-if ($result2) {
-    // Loop through the result set
-    while ($row1 = sqlsrv_fetch_array($result2, SQLSRV_FETCH_ASSOC)) {
-        $compTypeId = $row1['compTypeId'];
-        $compTypeDesc = $row1['compTypeDesc'];
-        $plant = $row1['loc_desc'];
-        
+            while ($row1 = sqlsrv_fetch_array($result2, SQLSRV_FETCH_ASSOC)) {
+                $compTypeId = $row1['compTypeId'];
+                $compTypeDesc = $row1['compTypeDesc'];
+                $plant = $row1['loc_desc'];
 
-        // Query to get pending and completed complaint counts
-        $pendingQuery = "SELECT COUNT(compNo) AS Pending FROM complaintTable 
-                         WHERE STATUS != 'C' AND compTypeID = '$compTypeId' AND (compDate BETWEEN '$startDate' AND '$endDate')";
+                // Track unique plants
+                if (!in_array($plant, $plants)) {
+                    $plants[] = $plant;
 
-        $completedQuery = "SELECT COUNT(compNo) AS Completed FROM complaintTable 
-                           WHERE STATUS = 'C' AND compTypeID = '$compTypeId' AND (compDate BETWEEN '$startDate' AND '$endDate')";
-
-        $pendingResult = sqlsrv_query($conn, $pendingQuery);
-        $completedResult = sqlsrv_query($conn, $completedQuery);
-
-        
-
-        if ($pendingResult && $completedResult) {
-            $pendingCount = sqlsrv_fetch_array($pendingResult)['Pending'];
-            $completedCount = sqlsrv_fetch_array($completedResult)['Completed'];
-
-            $total = $pendingCount + $completedCount;
-
-            // Query to select relevant data from ComplaintTable
-            $strSelComp = "SELECT COUNT(*) AS TotalCount FROM ComplaintTable CT 
-                           WHERE CT.CompDate >= '$startDate' AND CT.CompDate <= '$endDate' 
-                           AND CT.compTypeID = '$compTypeId'";
-
-            $objRS = sqlsrv_query($conn, $strSelComp);
-
-            if ($objRS === false) {
-                // Handle query execution errors
-                echo "Error executing the query: " . sqlsrv_errors();
-            } else {
-                if (sqlsrv_has_rows($objRS)) {
-                    $noRecords = false; // At least one record found
-
-                    echo '<tr align="center">';
-                    echo '<td><a href="#" onclick="fetchComplaintData(\'' . $compTypeId . '\', \'' . $compTypeDesc . '\', \'' . $startDate . '\', \'' . $endDate . '\')">' . $compTypeDesc . '</a></td>';
-                    //echo '<td>' . $compTypeDesc . '</td>';
-                    echo '<td>' . $total . '</td>';
-                    echo '<td>' . $completedCount . '</td>';
-                    echo '<td>' . $pendingCount . '</td>';
-                    echo '<td>' . $row1['loc_desc'] . '</td>';
-                    echo '</tr>';
-                } else {
-                    $noRecords = true;
+                    // Create a clickable plant row
+                    echo "<tr align='center' style='cursor: pointer; background-color: #90ee90;' onclick='togglePlantRows(\"$plant\")'>";
+                    echo "<td colspan='5'><b>$plant</b> (Click to Expand/Collapse)</td>";
+                    echo "</tr>";
                 }
+
+                // Fetch complaint counts
+                $pendingQuery = "SELECT COUNT(compNo) AS Pending FROM complaintTable 
+                                 WHERE STATUS != 'C' AND compTypeID = '$compTypeId' 
+                                 AND (compDate BETWEEN '$startDate' AND '$endDate')";
+                $completedQuery = "SELECT COUNT(compNo) AS Completed FROM complaintTable 
+                                   WHERE STATUS = 'C' AND compTypeID = '$compTypeId' 
+                                   AND (compDate BETWEEN '$startDate' AND '$endDate')";
+
+                $pendingResult = sqlsrv_query($conn, $pendingQuery);
+                $completedResult = sqlsrv_query($conn, $completedQuery);
+                $pendingCount = $pendingResult ? sqlsrv_fetch_array($pendingResult)['Pending'] : 0;
+                $completedCount = $completedResult ? sqlsrv_fetch_array($completedResult)['Completed'] : 0;
+                $total = $pendingCount + $completedCount;
+
+                echo "<tr align='center' data-plant='$plant' style='display: none;'>";
+                
+                echo "<td><a href='#' onclick='fetchComplaintData(\"$compTypeId\", \"$compTypeDesc\", \"$startDate\", \"$endDate\", \"$plant\")'>$compTypeDesc</a></td>";
+
+                echo "<td>$total</td>";
+                echo "<td>$completedCount</td>";
+                echo "<td>$pendingCount</td>";
+                echo "<td>$plant</td>";
+                echo "</tr>";
             }
         } else {
-            // Handle query execution errors
-            echo "Error executing the queries: " . sqlsrv_errors();
+            echo "<tr><td colspan='5'>No records found.</td></tr>";
         }
-    }
-} else {
-    // Handle query execution errors
-    echo "Error executing the query: " . sqlsrv_errors();
-}
-?>
-
-                        <?php if ($noRecords) { ?>
-                        <tr>
-                            <td colspan="6">No records found.</td>
-                        </tr>
-                        <?php } ?>
+        ?>
                     </tbody>
                 </table>
             </div>
@@ -256,12 +240,13 @@ if ($result2) {
 
 <script>
 
-function fetchComplaintData(compTypeId, compTypeDesc, startDate, endDate) {
+function fetchComplaintData(compTypeId, compTypeDesc, startDate, endDate, plant) {
         document.getElementById("complaintType").innerText = compTypeDesc;
         document.getElementById("startDate").innerText = startDate;
         document.getElementById("endDate").innerText = endDate;
-        
-        fetch("complaintDetails.php?compTypeId=" + compTypeId + "&compTypeDesc=" + encodeURIComponent(compTypeDesc) + "&startDate=" + startDate + "&endDate=" + endDate)
+
+        fetch("overallcomplaintDetails.php?compTypeId=" + compTypeId + "&compTypeDesc=" + encodeURIComponent(compTypeDesc) + 
+              "&startDate=" + startDate + "&endDate=" + endDate + "&plant=" + encodeURIComponent(plant))
             .then(response => response.text())
             .then(data => {
                 document.getElementById("modalBody").innerHTML = data;
@@ -276,4 +261,3 @@ function fetchComplaintData(compTypeId, compTypeDesc, startDate, endDate) {
 </script>
 </body>
 </html>
-<?php include 'footer.php';?>
